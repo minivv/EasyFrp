@@ -26,7 +26,13 @@
 curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frps.sh | bash
 ```
 
-记下打印的 `auth.token`；记得在云安全组放行通信端口、dashboard 端口和端口范围。
+记下打印的 `auth.token`。默认安装公网需放行的端口：
+
+| 端口 | 用途 | 建议 |
+| ---- | ---- | ---- |
+| `7000/tcp` | frp 通信 | 公网放行 |
+| `7500/tcp` | dashboard | 仅管理 IP |
+| `10000-20000/tcp` | 映射端口范围 | 按需放行 |
 
 ### 2. 客户端（每台内网机器）
 

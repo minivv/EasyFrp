@@ -43,8 +43,7 @@ curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp
 ### 2. 客户端（每台内网机器上执行）
 
 ```bash
-curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh \
-  | bash -s -- --server-addr <公网IP> --token <上一步的token>
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --server-addr <公网IP> --token <上一步的token>
 ```
 
 脚本会自动探测一个空闲端口作为这台机器的 ssh 远程端口，装完打印一段 `[[machines]]` 配置。

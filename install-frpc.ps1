@@ -1,8 +1,8 @@
-# install-frpc.ps1 — 一键安装 frpc 客户端（Windows 内网机器上运行）
+# install-frpc.ps1 — one-click frpc client installer (run on an intranet Windows box)
 #
-# 安装：
-#   powershell -ExecutionPolicy Bypass -File install-frpc.ps1 -ServerAddr 你的公网IP -Token 你的token
-# 卸载（逐步 y 确认）：
+# Install:
+#   powershell -ExecutionPolicy Bypass -File install-frpc.ps1 -ServerAddr <ip> -Token <token>
+# Uninstall (step-by-step confirm):
 #   powershell -ExecutionPolicy Bypass -File install-frpc.ps1 -Uninstall
 
 param(
@@ -56,55 +56,55 @@ function Find-FreePort {
 }
 
 if ($Uninstall) {
-    Write-Host "===== 卸载 frpc ====="
+    Write-Host "===== Uninstall frpc ====="
     schtasks /Query /TN "EasyFrp" 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) {
-        if (Confirm-Step "删除计划任务 EasyFrp？") {
+        if (Confirm-Step "Delete scheduled task EasyFrp?") {
             schtasks /Delete /TN "EasyFrp" /F | Out-Null
-            Write-Host "  已删除计划任务"
+            Write-Host "  Scheduled task removed"
         } else {
-            Write-Host "  跳过计划任务删除"
+            Write-Host "  Skipped"
         }
     } else {
-        Write-Host "  未找到计划任务 EasyFrp"
+        Write-Host "  Scheduled task EasyFrp not found"
     }
     if (Test-Path $Dir) {
-        if (Confirm-Step "删除安装目录 $Dir（含 frpc.exe 与配置）？") {
+        if (Confirm-Step "Delete install dir $Dir (frpc.exe + config)?") {
             Remove-Item -Recurse -Force $Dir
-            Write-Host "  已删除 $Dir"
+            Write-Host "  Removed $Dir"
         } else {
-            Write-Host "  跳过目录删除"
+            Write-Host "  Skipped"
         }
     } else {
-        Write-Host "  未找到安装目录 $Dir"
+        Write-Host "  Install dir not found: $Dir"
     }
-    Write-Host "卸载流程结束"
+    Write-Host "Uninstall done"
     exit 0
 }
 
-if (-not $ServerAddr) { Write-Host "错误：缺少 -ServerAddr"; exit 1 }
-if (-not $Token) { Write-Host "错误：缺少 -Token"; exit 1 }
+if (-not $ServerAddr) { Write-Host "Error: missing -ServerAddr"; exit 1 }
+if (-not $Token) { Write-Host "Error: missing -Token"; exit 1 }
 
 $proc = $env:PROCESSOR_ARCHITECTURE
 switch ($proc) {
-    "AMD64"   { $arch = "amd64" }
-    "ARM64"   { $arch = "arm64" }
-    default   { Write-Host "不支持的架构: $proc"; exit 1 }
+    "AMD64" { $arch = "amd64" }
+    "ARM64" { $arch = "arm64" }
+    default { Write-Host "Unsupported architecture: $proc"; exit 1 }
 }
 
 if ($SshPort -eq 0) {
-    Write-Host "==> 自动探测 ${ServerAddr}:${AllowStart}-${AllowEnd} 的空闲端口..."
+    Write-Host "==> Probing free port on ${ServerAddr}:${AllowStart}-${AllowEnd} ..."
     $SshPort = Find-FreePort $ServerAddr
-    if ($SshPort -eq 0) { Write-Host "错误：未找到空闲端口，请用 -SshPort 手动指定"; exit 1 }
-    Write-Host "==> 探测到空闲端口: $SshPort（作为本机 ssh 的远程端口）"
+    if ($SshPort -eq 0) { Write-Host "Error: no free port, use -SshPort"; exit 1 }
+    Write-Host "==> Free port: $SshPort (ssh remote port)"
 }
 
 $base = if ($NoGhProxy) { "https://github.com" } else { "https://gh-proxy.org/https://github.com" }
 $url = "$base/fatedier/frp/releases/download/v$Version/frp_${Version}_windows_${arch}.zip"
-Write-Host "==> 下载 $url"
+Write-Host "==> Download $url"
 $tmp = Join-Path $env:TEMP "frp_${Version}.zip"
 curl.exe -fsSL $url -o $tmp
-if ($LASTEXITCODE -ne 0) { Write-Host "下载失败"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Host "Download failed"; exit 1 }
 
 New-Item -ItemType Directory -Force -Path "$Dir\proxies" | Out-Null
 $expand = Join-Path $env:TEMP "frp_expand"
@@ -145,15 +145,15 @@ schtasks /Create /TN "EasyFrp" /TR $tr /SC ONSTART /RU SYSTEM /F | Out-Null
 schtasks /Run /TN "EasyFrp" | Out-Null
 
 Write-Host ""
-Write-Host "================ frpc 安装完成 ================"
-Write-Host "系统:            Windows"
-Write-Host "目录:            $Dir"
-Write-Host "本机 ssh 远程端口: $SshPort （即 ${ServerAddr}:${SshPort} → 本机:${SshLocalPort}）"
+Write-Host "================ frpc installed ================"
+Write-Host "OS:              Windows"
+Write-Host "Dir:             $Dir"
+Write-Host "SSH remote port: $SshPort (${ServerAddr}:${SshPort} -> localhost:${SshLocalPort})"
 Write-Host ""
-Write-Host "在本机 EasyFrp 的 config.toml 追加以下配置即可管理这台机器："
+Write-Host "Add this to EasyFrp config.toml to manage this machine:"
 Write-Host ""
 Write-Host '[[machines]]'
-Write-Host "name = \"$hostname\""
+Write-Host "name = `"$hostname`""
 Write-Host "ssh_port = $SshPort"
-Write-Host "proxies_dir = \"$dirUnix/proxies\""
-Write-Host "frpc_toml = \"$dirUnix/frpc.toml\""
+Write-Host "proxies_dir = `"$dirUnix/proxies`""
+Write-Host "frpc_toml = `"$dirUnix/frpc.toml`""

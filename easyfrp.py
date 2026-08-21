@@ -50,11 +50,19 @@ DEFAULT_FRPC_TOML = "/opt/easyfrp/frpc.toml"
 # 避免重启瞬间把执行命令的连接也一并掐断
 DEFAULT_RESTART = "nohup sh -c 'sleep 1; systemctl restart frpc' >/dev/null 2>&1 &"
 
+# 跨平台打开浏览器的命令（会作为 {open} 占位符注入访问命令模板）
+if sys.platform == "win32":
+    OPEN_CMD = 'start ""'
+elif sys.platform == "darwin":
+    OPEN_CMD = "open"
+else:
+    OPEN_CMD = "xdg-open"
+
 # 默认访问命令模板（按 type），config 未覆盖时使用
 DEFAULT_COMMANDS = {
-    "tcp": "open http://{host}:{port}",
-    "http": "open http://{host}:{port}",
-    "https": "open https://{host}:{port}",
+    "tcp": "{open} http://{host}:{port}",
+    "http": "{open} http://{host}:{port}",
+    "https": "{open} https://{host}:{port}",
     "udp": "",
 }
 
@@ -237,6 +245,7 @@ def run_visit(cfg, p):
         "desc": p.get("_desc", ""),
         "key": expand(cfg["key"]),
         "user": cfg["user"],
+        "open": OPEN_CMD,
     }
     cmd = cmd_tmpl
     for k, v in mapping.items():

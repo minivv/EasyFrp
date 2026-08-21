@@ -10,11 +10,12 @@ key = "~/.ssh/id_rsa"          # ssh 私钥路径
 port_range = [10000, 20000]    # frps 的 allowPorts 范围
 
 # 访问命令模板（列表里按编号回车时执行）
-# 占位符：{host} {port} {name} {desc} {key} {user}
+# {open} 会自动按平台替换成 open(macOS)/start(Windows)/xdg-open(Linux)
+# 占位符：{open} {host} {port} {name} {desc} {key} {user}
 [commands]
-tcp   = "open http://{host}:{port}"
-http  = "open http://{host}:{port}"
-https = "open https://{host}:{port}"
+tcp   = "{open} http://{host}:{port}"
+http  = "{open} http://{host}:{port}"
+https = "{open} https://{host}:{port}"
 udp   = ""
 
 # 按映射名单独定制访问命令（可选，优先于上面的按类型）

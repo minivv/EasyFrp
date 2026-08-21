@@ -65,9 +65,10 @@ frp -m 106     # 直接指定机器名
 |---|---|---|---|
 | frps 服务端 | ✅ | 手动 | ❌ |
 | frpc 内网机 | ✅ | 手动 | ❌ |
-| 管理工具 | ✅ | ✅ | ⚠️ 改 `open` 命令 |
+| 管理工具 | ✅ | ✅ | ✅ |
 
-> Linux 脚本支持 `x86_64` / `arm64` 且带 systemd 的发行版（Ubuntu/Debian/CentOS/Fedora/Rocky 等）。
+> - 部署脚本支持 `x86_64` / `arm64` 且带 systemd 的 Linux 发行版（Ubuntu/Debian/CentOS/Fedora/Rocky 等）。
+> - 管理工具在 Windows 上只需装 Python 3.11+ 与 `pip install rich prompt_toolkit`；访问命令会自动用 `start` 打开浏览器（见配置里的 `{open}` 占位符）。
 
 ## 配置
 

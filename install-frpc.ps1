@@ -24,7 +24,7 @@ $ErrorActionPreference = "Stop"
 # 写入 Program Files + 注册计划任务需要管理员权限
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "需要管理员权限，请右键 PowerShell 选择「以管理员身份运行」后重试。" -ForegroundColor Red
+    Write-Host "Administrator privileges required. Please run PowerShell as Administrator." -ForegroundColor Red
     exit 1
 }
 
@@ -156,7 +156,7 @@ Write-Host ""
 Write-Host "================ frpc installed ================"
 Write-Host "OS:              Windows"
 Write-Host "Dir:             $Dir"
-Write-Host "SSH remote port: $SshPort (${ServerAddr}:${SshPort} -> localhost:${SshLocalPort})"
+Write-Host ('SSH remote port: ' + $SshPort + ' (' + $ServerAddr + ':' + $SshPort + ' -> localhost:' + $SshLocalPort + ')')
 Write-Host ""
 Write-Host "Add this to EasyFrp config.toml to manage this machine:"
 Write-Host ""

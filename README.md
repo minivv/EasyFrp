@@ -18,6 +18,16 @@
 | :---: | :---: |
 | ![frps 安装](docs/screenshots/install-frps.png) | ![frpc 安装](docs/screenshots/install-frpc.png) |
 
+## 架构
+
+```
+本机(easyfrp) ──ssh──> frps(公网) ──转发──> 各内网机器
+```
+
+- **内网机器之间无需互通**，每台只要能出网连到 frps 的通信端口（默认 7000）即可
+- 本机也不直连内网：每台机器装 frpc 时都会暴露一个 ssh 映射（即 `frps的某端口 → 该内网机器的 22`），本机 ssh 到那个端口、由 frps 转发进去管理
+- 前提：每台内网机器要把**本机 ssh 公钥**加进 `~/.ssh/authorized_keys`，本机才能免密管理它（否则会报 `Permission denied`）
+
 ## 快速开始
 
 ### 1. 服务端（公网服务器）

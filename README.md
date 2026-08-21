@@ -88,7 +88,13 @@ name = "106"
 ssh_port = 10022
 proxies_dir = "/www/server/frp/proxies"
 frpc_toml = "/www/server/frp/frpc.toml"
+# 每台机器可单独覆盖上面的全局项：
+# user        = "root"                # 覆盖 [frps] 的 user
+# key         = "~/.ssh/id_ed25519"   # 覆盖 [frps] 的 key（不同机器可用不同密钥）
+# restart_cmd = "nohup sh -c 'sleep 1; systemctl restart frpc' >/dev/null 2>&1 &"
 ```
+
+每台机器都能用下面的键覆盖 `[frps]` 里的同名项：`user`、`key`；此外还有 `restart_cmd`（默认就是上面那条 nohup 重启命令）。
 
 ## License
 

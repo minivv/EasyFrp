@@ -110,6 +110,7 @@ def ssh_cmd(cfg, remote_cmd, input_text=None, check=True, ssh_port=None):
         "-i", expand(cfg["key"]),
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=10",
+        "-o", "StrictHostKeyChecking=accept-new",
         f'{cfg["user"]}@{cfg["host"]}',
         remote_cmd,
     ]

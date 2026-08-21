@@ -51,15 +51,49 @@ powershell -ExecutionPolicy Bypass -File frpc.ps1 -ServerAddr <公网IP> -Token 
 
 自动探测空闲端口作为本机 ssh 远程端口，装完打印一段 `[[machines]]` 配置。
 
-### 3. 本机管理工具
+### 3. 本机管理工具（在你自己电脑上装）
+
+**第 1 步，先下载代码：**
+
+```bash
+git clone https://github.com/minivv/EasyFrp.git
+cd EasyFrp
+```
+
+（没有 git 就在 GitHub 页面点 `Code → Download ZIP` 解压，然后 `cd` 进去。）
+
+**第 2 步，装依赖**（只需一次，装在独立目录里，不碰系统 Python）：
 
 ```bash
 python3 -m venv ~/.local/share/easyfrp/venv
 ~/.local/share/easyfrp/venv/bin/pip install rich prompt_toolkit
-
-mkdir -p ~/.config/easyfrp
-cp config.example.toml ~/.config/easyfrp/config.toml   # 填 frps 信息 + 粘入 [[machines]] 片段
 ```
+
+**第 3 步，建配置文件：**
+
+```bash
+mkdir -p ~/.config/easyfrp
+cp config.example.toml ~/.config/easyfrp/config.toml
+```
+
+用编辑器打开 `~/.config/easyfrp/config.toml`，改两处：
+- `[frps]` 里的 `host` → 你的公网 IP
+- 把每台内网机器装完后 `install-frpc` 打印的 `[[machines]]` 片段粘进去
+
+**第 4 步，建个 `frp` 命令**（`~/EasyFrp` 换成你第 1 步的目录）：
+
+```bash
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/frp <<'EOF'
+#!/bin/sh
+exec "$HOME/.local/share/easyfrp/venv/bin/python" "$HOME/EasyFrp/easyfrp.py" "$@"
+EOF
+chmod +x ~/.local/bin/frp
+```
+
+> 如果敲 `frp` 提示找不到命令，把 `export PATH="$HOME/.local/bin:$PATH"` 追加到 `~/.zshrc`（zsh）或 `~/.bashrc`（bash），再重开终端。
+
+**第 5 步，使用：**
 
 ```bash
 frp            # 选机器 → 进入映射管理

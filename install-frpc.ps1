@@ -57,10 +57,9 @@ function Find-FreePort {
 
 if ($Uninstall) {
     Write-Host "===== Uninstall frpc ====="
-    schtasks /Query /TN "EasyFrp" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
+    if (Get-ScheduledTask -TaskName "EasyFrp" -ErrorAction SilentlyContinue) {
         if (Confirm-Step "Delete scheduled task EasyFrp?") {
-            schtasks /Delete /TN "EasyFrp" /F | Out-Null
+            Unregister-ScheduledTask -TaskName "EasyFrp" -Confirm:$false
             Write-Host "  Scheduled task removed"
         } else {
             Write-Host "  Skipped"
@@ -140,9 +139,11 @@ Write-Utf8NoBom "$Dir\proxies\ssh.toml" $sshToml
 
 $exe = "$Dir\frpc.exe"
 $cfg = "$Dir\frpc.toml"
-$tr = '"' + $exe + '" -c "' + $cfg + '"'
-schtasks /Create /TN "EasyFrp" /TR $tr /SC ONSTART /RU SYSTEM /F | Out-Null
-schtasks /Run /TN "EasyFrp" | Out-Null
+$action = New-ScheduledTaskAction -Execute $exe -Argument "-c `"$cfg`""
+$trigger = New-ScheduledTaskTrigger -AtStartup
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM"
+Register-ScheduledTask -TaskName "EasyFrp" -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
+Start-ScheduledTask -TaskName "EasyFrp"
 
 Write-Host ""
 Write-Host "================ frpc installed ================"

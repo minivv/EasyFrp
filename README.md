@@ -59,6 +59,18 @@ frp -m 106     # 直接指定机器名
 
 管理命令：`编号`=浏览器打开、`a`=新增、`e`=改备注、`d`=删除、`m`=切机器、`r`=刷新、`q`=退出。
 
+## 卸载
+
+加 `--uninstall` 即可，删除服务、删除目录都会逐步 `y` 确认：
+
+```bash
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frps.sh | bash -s -- --uninstall
+```
+
+```bash
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --uninstall --dir /opt/easyfrp
+```
+
 ## 支持范围
 
 | | Linux (systemd) | macOS | Windows |

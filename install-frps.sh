@@ -15,6 +15,7 @@
 #   --allow-start <p>     允许绑定的端口范围起点，默认 10000
 #   --allow-end <p>       允许绑定的端口范围终点，默认 20000
 #   --no-gh-proxy         直连 GitHub 下载（默认走 gh-proxy 加速）
+#   --uninstall           卸载（逐步 y 确认：停服务、删服务、删目录）
 #
 # 也可用环境变量传参：FRP_VERSION / FRPS_DIR / BIND_PORT / DASH_PORT /
 #   DASH_USER / DASH_PASS / AUTH_TOKEN / ALLOW_START / ALLOW_END / GH_PROXY
@@ -31,6 +32,7 @@ AUTH_TOKEN="${AUTH_TOKEN:-}"
 ALLOW_START="${ALLOW_START:-10000}"
 ALLOW_END="${ALLOW_END:-20000}"
 GH_PROXY="${GH_PROXY:-https://gh-proxy.org/}"
+UNINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -44,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --allow-start) ALLOW_START="$2"; shift 2;;
     --allow-end) ALLOW_END="$2"; shift 2;;
     --no-gh-proxy) GH_PROXY=""; shift 1;;
+    --uninstall) UNINSTALL=1; shift 1;;
     *) echo "未知参数: $1"; exit 1;;
   esac
 done
@@ -52,6 +55,45 @@ rand_hex() {
   openssl rand -hex "$1" 2>/dev/null \
     || head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n' | cut -c1-$(( $1 * 2 ))
 }
+
+confirm() {
+  local ans=""
+  printf "%s [y/N]: " "$1"
+  read -r ans < /dev/tty 2>/dev/null || return 1
+  [[ "$ans" =~ ^[Yy]$ ]]
+}
+
+do_uninstall() {
+  echo "===== 卸载 frps ====="
+  if systemctl list-unit-files 2>/dev/null | grep -q '^frps\.service'; then
+    if confirm "停止并删除 frps 服务？"; then
+      systemctl disable --now frps 2>/dev/null || true
+      rm -f /etc/systemd/system/frps.service
+      systemctl daemon-reload
+      echo "  已删除 frps 服务"
+    else
+      echo "  跳过服务删除"
+    fi
+  else
+    echo "  未找到 frps 服务"
+  fi
+  if [[ -d "$FRPS_DIR" ]]; then
+    if confirm "删除安装目录 $FRPS_DIR（含 frps 二进制与配置）？"; then
+      rm -rf "$FRPS_DIR"
+      echo "  已删除 $FRPS_DIR"
+    else
+      echo "  跳过目录删除"
+    fi
+  else
+    echo "  未找到安装目录 $FRPS_DIR"
+  fi
+  echo "卸载流程结束"
+}
+
+if [[ "$UNINSTALL" == 1 ]]; then
+  do_uninstall
+  exit 0
+fi
 
 [[ -n "$AUTH_TOKEN" ]] || AUTH_TOKEN="$(rand_hex 32)"
 [[ -n "$DASH_PASS" ]] || DASH_PASS="$(rand_hex 16)"

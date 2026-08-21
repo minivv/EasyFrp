@@ -18,6 +18,7 @@
 #   --version <v>              frp 版本，默认 0.71.0
 #   --dir <path>               安装目录，默认 /opt/easyfrp
 #   --no-gh-proxy              直连 GitHub 下载（默认走 gh-proxy 加速）
+#   --uninstall                卸载（逐步 y 确认：停服务、删服务、删目录）
 #
 # 部署完成后会打印一段 [[machines]] 配置，粘贴进本机 EasyFrp 的 config.toml 即可管理。
 
@@ -33,6 +34,7 @@ SSH_LOCAL_PORT="${SSH_LOCAL_PORT:-22}"
 ALLOW_START="${ALLOW_START:-10000}"
 ALLOW_END="${ALLOW_END:-20000}"
 GH_PROXY="${GH_PROXY:-https://gh-proxy.org/}"
+UNINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,9 +48,49 @@ while [[ $# -gt 0 ]]; do
     --version) FRP_VERSION="$2"; shift 2;;
     --dir) FRPC_DIR="$2"; shift 2;;
     --no-gh-proxy) GH_PROXY=""; shift 1;;
+    --uninstall) UNINSTALL=1; shift 1;;
     *) echo "未知参数: $1"; exit 1;;
   esac
 done
+
+confirm() {
+  local ans=""
+  printf "%s [y/N]: " "$1"
+  read -r ans < /dev/tty 2>/dev/null || return 1
+  [[ "$ans" =~ ^[Yy]$ ]]
+}
+
+do_uninstall() {
+  echo "===== 卸载 frpc ====="
+  if systemctl list-unit-files 2>/dev/null | grep -q '^frpc\.service'; then
+    if confirm "停止并删除 frpc 服务？"; then
+      systemctl disable --now frpc 2>/dev/null || true
+      rm -f /etc/systemd/system/frpc.service
+      systemctl daemon-reload
+      echo "  已删除 frpc 服务"
+    else
+      echo "  跳过服务删除"
+    fi
+  else
+    echo "  未找到 frpc 服务"
+  fi
+  if [[ -d "$FRPC_DIR" ]]; then
+    if confirm "删除安装目录 $FRPC_DIR（含 frpc 二进制与配置）？"; then
+      rm -rf "$FRPC_DIR"
+      echo "  已删除 $FRPC_DIR"
+    else
+      echo "  跳过目录删除"
+    fi
+  else
+    echo "  未找到安装目录 $FRPC_DIR"
+  fi
+  echo "卸载流程结束"
+}
+
+if [[ "$UNINSTALL" == 1 ]]; then
+  do_uninstall
+  exit 0
+fi
 
 [[ -n "$SERVER_ADDR" ]] || { echo "错误：缺少 --server-addr"; exit 1; }
 [[ -n "$AUTH_TOKEN" ]] || { echo "错误：缺少 --token"; exit 1; }

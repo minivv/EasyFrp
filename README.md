@@ -42,12 +42,10 @@ curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp
 curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --server-addr <公网IP> --token <上一步的token>
 ```
 
-**Windows（PowerShell）：**
+**Windows（PowerShell，一条命令）：**
 
 ```powershell
-irm https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.ps1 -OutFile frpc.ps1
-Set-ExecutionPolicy -Scope Process Bypass -Force
-./frpc.ps1 -ServerAddr <公网IP> -Token <上一步的token>
+irm https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.ps1 -OutFile $env:TEMP\frpc.ps1; Set-ExecutionPolicy Bypass -Scope Process -Force; & $env:TEMP\frpc.ps1 -ServerAddr <公网IP> -Token <上一步的token>
 ```
 
 自动探测空闲端口作为本机 ssh 远程端口，装完打印一段 `[[machines]]` 配置。
@@ -116,8 +114,8 @@ curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp
 ```
 
 ```powershell
-# frpc（Windows）
-./frpc.ps1 -Uninstall
+# frpc（Windows，一条命令）
+irm https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.ps1 -OutFile $env:TEMP\frpc.ps1; Set-ExecutionPolicy Bypass -Scope Process -Force; & $env:TEMP\frpc.ps1 -Uninstall
 ```
 
 ## 支持范围

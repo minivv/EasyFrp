@@ -36,8 +36,17 @@ curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp
 
 ### 2. 客户端（每台内网机器）
 
+**Linux / macOS：**
+
 ```bash
 curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --server-addr <公网IP> --token <上一步的token>
+```
+
+**Windows（PowerShell）：**
+
+```powershell
+irm https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.ps1 -OutFile frpc.ps1
+powershell -ExecutionPolicy Bypass -File frpc.ps1 -ServerAddr <公网IP> -Token <上一步的token>
 ```
 
 自动探测空闲端口作为本机 ssh 远程端口，装完打印一段 `[[machines]]` 配置。
@@ -61,25 +70,30 @@ frp -m 106     # 直接指定机器名
 
 ## 卸载
 
-加 `--uninstall` 即可，删除服务、删除目录都会逐步 `y` 确认：
+删除服务、删除目录都会逐步 `y` 确认：
 
 ```bash
+# frps（Linux）
 curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frps.sh | bash -s -- --uninstall
+
+# frpc（Linux / macOS）
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --uninstall
 ```
 
-```bash
-curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc.sh | bash -s -- --uninstall --dir /opt/easyfrp
+```powershell
+# frpc（Windows）
+powershell -ExecutionPolicy Bypass -File frpc.ps1 -Uninstall
 ```
 
 ## 支持范围
 
 | | Linux (systemd) | macOS | Windows |
 |---|---|---|---|
-| frps 服务端 | ✅ | 手动 | ❌ |
-| frpc 内网机 | ✅ | 手动 | ❌ |
+| frps 服务端 | ✅ | 手动 | 手动 |
+| frpc 内网机 | ✅ | ✅ (launchd) | ✅ (计划任务) |
 | 管理工具 | ✅ | ✅ | ✅ |
 
-> - 部署脚本支持 `x86_64` / `arm64` 且带 systemd 的 Linux 发行版（Ubuntu/Debian/CentOS/Fedora/Rocky 等）。
+> - Linux 部署脚本支持 `x86_64` / `arm64` 且带 systemd 的发行版（Ubuntu/Debian/CentOS/Fedora/Rocky 等）。
 > - 管理工具在 Windows 上只需装 Python 3.11+ 与 `pip install rich prompt_toolkit`；访问命令会自动用 `start` 打开浏览器（见配置里的 `{open}` 占位符）。
 
 ## 配置

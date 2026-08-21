@@ -21,6 +21,23 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# 写入 Program Files + 注册计划任务需要管理员权限；非管理员则 UAC 提权重跑一次
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    $passed = @()
+    foreach ($key in $PSBoundParameters.Keys) {
+        $val = $PSBoundParameters[$key]
+        if ($val -is [System.Management.Automation.SwitchParameter]) {
+            $passed += "-$key"
+        } else {
+            $passed += "-$key"
+            $passed += "`"$val`""
+        }
+    }
+    Start-Process powershell -Verb RunAs -ArgumentList (@("-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"") + $passed)
+    exit
+}
+
 function Write-Utf8NoBom {
     param([string]$Path, [string]$Content)
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false

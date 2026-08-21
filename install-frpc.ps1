@@ -122,26 +122,26 @@ Remove-Item -Recurse -Force $expand
 Remove-Item -Force $tmp
 
 $dirUnix = $Dir -replace '\\', '/'
-$frpcToml = @"
-serverAddr = "$ServerAddr"
-serverPort = $ServerPort
-
-auth.method = "token"
-auth.token = "$Token"
-
-includes = ["$dirUnix/proxies/*.toml"]
-"@
+$frpcToml = (
+    'serverAddr = "' + $ServerAddr + '"',
+    'serverPort = ' + $ServerPort,
+    '',
+    'auth.method = "token"',
+    'auth.token = "' + $Token + '"',
+    '',
+    'includes = ["' + $dirUnix + '/proxies/*.toml"]'
+) -join "`r`n"
 Write-Utf8NoBom "$Dir\frpc.toml" $frpcToml
 
 $hostname = $env:COMPUTERNAME
-$sshToml = @"
-[[proxies]]
-name = "ssh-$hostname"
-type = "tcp"
-localIP = "127.0.0.1"
-localPort = $SshLocalPort
-remotePort = $SshPort
-"@
+$sshToml = (
+    '[[proxies]]',
+    'name = "ssh-' + $hostname + '"',
+    'type = "tcp"',
+    'localIP = "127.0.0.1"',
+    'localPort = ' + $SshLocalPort,
+    'remotePort = ' + $SshPort
+) -join "`r`n"
 Write-Utf8NoBom "$Dir\proxies\ssh.toml" $sshToml
 
 $exe = "$Dir\frpc.exe"

@@ -7,6 +7,8 @@
 - 每台 frpc 机器都把自己的 ssh(22) 通过 frp 暴露成 frps 上一个唯一的 remotePort，
   本工具通过 `ssh -p <remotePort> user@frps_host` 管理对应机器。
 - 新增映射时自动 ssh 到 frps 探测已占用端口，避开冲突。
+- 本机自己也可以是 frpc 机器：config 里那条写 local = true，命令直接本地执行，
+  不经过 ssh，也不需要在 macOS 上打开「远程登录」。
 
 用法
 ----
@@ -58,6 +60,13 @@ elif sys.platform == "darwin":
 else:
     OPEN_CMD = "xdg-open"
 
+# 本机（config 里写 local = true 的机器）不走 ssh，重启的是本机自己的 frpc 服务
+if sys.platform == "darwin":
+    # 用户级 LaunchAgent：~/Library/LaunchAgents/com.easyfrp.frpc.plist
+    DEFAULT_LOCAL_RESTART = "launchctl kickstart -k gui/$(id -u)/com.easyfrp.frpc"
+else:
+    DEFAULT_LOCAL_RESTART = "systemctl restart frpc"
+
 # 默认访问命令模板（按 type），config 未覆盖时使用
 DEFAULT_COMMANDS = {
     "tcp": "{open} http://{host}:{port}",
@@ -82,16 +91,28 @@ def load_config(path) -> dict:
 
 
 def build_cfg(server: dict, commands: dict, machine: dict) -> dict:
-    """把 frps + 当前 machine 合并进程原有的 cfg 结构，供后续函数使用。"""
+    """把 frps + 当前 machine 合并进程原有的 cfg 结构，供后续函数使用。
+
+    machine 里写 local = true 表示这台就是本机：命令本地执行、不走 ssh，
+    因此 ssh_port 可以不写，proxies_dir / frpc_toml 用本机路径（支持 ~）。
+    """
+    local = bool(machine.get("local", False))
+    proxies_dir = machine.get("proxies_dir", DEFAULT_PROXIES_DIR)
+    frpc_toml = machine.get("frpc_toml", DEFAULT_FRPC_TOML)
+    if local:  # 本机路径直接展开 ~，再交给本地 shell
+        proxies_dir = expand(proxies_dir)
+        frpc_toml = expand(frpc_toml)
     return {
         "host": server.get("host", ""),                      # frps 公网地址（访问/ssh 目标主机）
+        "local": local,                                      # 本机机器：命令本地执行
         "port": int(machine.get("ssh_port", 0)),             # 当前机器 ssh 经 frps 的 remotePort
         "frps_ssh_port": int(server.get("ssh_port", DEFAULT_SSH_PORT)),
         "user": machine.get("user") or server.get("user", "root"),
         "key": machine.get("key") or server.get("key", "~/.ssh/id_rsa"),
-        "proxies_dir": machine.get("proxies_dir", DEFAULT_PROXIES_DIR),
-        "frpc_toml": machine.get("frpc_toml", DEFAULT_FRPC_TOML),
-        "restart_cmd": machine.get("restart_cmd") or DEFAULT_RESTART,
+        "proxies_dir": proxies_dir,
+        "frpc_toml": frpc_toml,
+        "restart_cmd": machine.get("restart_cmd")
+                       or (DEFAULT_LOCAL_RESTART if local else DEFAULT_RESTART),
         "port_range": list(server.get("port_range", DEFAULT_PORT_RANGE)),
         "type": "tcp",
         "local_ip": "",
@@ -103,6 +124,16 @@ def build_cfg(server: dict, commands: dict, machine: dict) -> dict:
 # SSH 执行
 # ---------------------------------------------------------------------------
 def ssh_cmd(cfg, remote_cmd, input_text=None, check=True, ssh_port=None):
+    """在目标机器上跑一条 shell 命令；local = true 的机器直接在本机执行。"""
+    if cfg.get("local") and ssh_port is None:
+        proc = subprocess.run(
+            ["sh", "-c", remote_cmd], input=input_text, capture_output=True, text=True,
+            stdin=subprocess.DEVNULL if input_text is None else None,
+        )
+        if check and proc.returncode != 0:
+            console.print(f"[red][错误] 本地执行失败（exit={proc.returncode}）：\n{proc.stderr.strip()}[/red]")
+            sys.exit(1)
+        return proc.stdout
     port = ssh_port if ssh_port is not None else cfg["port"]
     cmd = [
         "ssh",
@@ -125,7 +156,7 @@ def ssh_cmd(cfg, remote_cmd, input_text=None, check=True, ssh_port=None):
 
 
 def restart_frpc(cfg):
-    console.print("[dim]正在重启 frpc ...[/dim]")
+    console.print(f"[dim]正在重启{'本机' if cfg.get('local') else ''} frpc ...[/dim]")
     ssh_cmd(cfg, cfg["restart_cmd"], check=False)
     console.print("[dim]重启命令已下发，约 2 秒后 frpc 恢复[/dim]")
 
@@ -537,7 +568,8 @@ def select_machine(machines):
     table.add_column("name", style="bold white")
     table.add_column("ssh", style="magenta")
     for i, m in enumerate(machines, 1):
-        table.add_row(str(i), m.get("name", "?"), str(m.get("ssh_port", "?")))
+        where = "本机（local）" if m.get("local") else str(m.get("ssh_port", "?"))
+        table.add_row(str(i), m.get("name", "?"), where)
     console.print(table)
     while True:
         v = ask_prompt("选机器编号")

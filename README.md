@@ -22,6 +22,7 @@
 
 ```
 本机(easyfrp) ──ssh──> frps(公网) ──转发──> 各内网机器
+     └── 本机自己也可以是 frpc 机器（配置里 local = true，不走 ssh）
 ```
 
 - **内网机器之间无需互通**，每台只要能出网连到 frps 的通信端口（默认 7000）即可
@@ -111,6 +112,47 @@ frp -m 106     # 直接指定机器名
 
 管理命令：`编号`=浏览器打开、`a`=新增、`e`=改备注、`d`=删除、`m`=切机器、`r`=刷新、`q`=退出。
 
+## 让本机自己也出公网（macOS，免 sudo）
+
+上面管的都是别的内网机器；如果你想让**自己这台 Mac 上的服务**也通过 frps 出去，
+本机就是一个 frpc 机器。一条命令装好，全程不碰系统目录、不用 sudo、也不用开「远程登录」：
+
+```bash
+curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc-macos.sh | bash -s -- --server-addr <公网IP> --token <token>
+```
+
+脚本做三件事：
+
+- frpc 二进制 → `~/.local/share/easyfrp/frpc`（自动识别 arm64 / amd64）
+- 主配置 `~/.local/share/easyfrp/frpc.toml`，映射目录 `~/.local/share/easyfrp/proxies/`
+- `~/Library/LaunchAgents/com.easyfrp.frpc.plist` 托管：登录后自动运行、进程挂掉自动拉起
+
+装完它会打印一段 `[[machines]]`，粘进 `~/.config/easyfrp/config.toml`，关键是那行 `local = true`：
+
+```toml
+[[machines]]
+name = "mac"                                    # 本机
+local = true                                    # 命令在本机执行，不走 ssh
+proxies_dir = "~/.local/share/easyfrp/proxies"
+frpc_toml = "~/.local/share/easyfrp/frpc.toml"
+```
+
+然后照常用：
+
+```bash
+frp -m mac        # 直接管本机的映射：a 新增、d 删除、e 改备注、编号=浏览器打开
+```
+
+`local = true` 的机器不用写 `ssh_port`：easyfrp 直接在本机读写映射文件、用
+`launchctl kickstart` 重启 frpc，不绕公网、也不需要往本机 `authorized_keys` 塞公钥。
+
+> 本机的 frpc 只主动出网连 frps 的 7000，不开放任何入站端口；公网能不能访问，
+> 只取决于你加没加映射。想卸载：
+>
+> ```bash
+> curl -fsSL https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/install-frpc-macos.sh | bash -s -- --uninstall
+> ```
+
 ## 卸载
 
 删除服务、删除目录都会逐步 `y` 确认：
@@ -138,6 +180,8 @@ irm https://gh-proxy.org/https://raw.githubusercontent.com/minivv/EasyFrp/main/i
 
 > - Linux 部署脚本支持 `x86_64` / `arm64` 且带 systemd 的发行版（Ubuntu/Debian/CentOS/Fedora/Rocky 等）。
 > - 管理工具在 Windows 上只需装 Python 3.11+ 与 `pip install rich prompt_toolkit`；访问命令会自动用 `start` 打开浏览器（见配置里的 `{open}` 占位符）。
+> - macOS 装 frpc 有两个脚本：`install-frpc.sh` 装到 `/usr/local/easyfrp`（需要 sudo，LaunchDaemon，适合内网机器）；
+>   `install-frpc-macos.sh` 装到用户目录（免 sudo，LaunchAgent，适合本机自己）。
 
 ## 配置
 
@@ -164,6 +208,10 @@ frpc_toml = "/www/server/frp/frpc.toml"
 ```
 
 每台机器都能用下面的键覆盖 `[frps]` 里的同名项：`user`、`key`；此外还有 `restart_cmd`（默认就是上面那条 nohup 重启命令）。
+
+本机自己那条机器写 `local = true`（可以不写 `ssh_port`）：命令在本机执行，`proxies_dir` /
+`frpc_toml` 支持 `~`，默认重启命令按平台取 `launchctl kickstart -k gui/$(id -u)/com.easyfrp.frpc`
+（macOS）或 `systemctl restart frpc`（Linux），也可以在 `restart_cmd` 里自定义。
 
 ## License
 

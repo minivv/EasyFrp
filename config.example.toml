@@ -40,3 +40,11 @@ frpc_toml = "/opt/easyfrp/frpc.toml"
 # user = "root"                 # 可选，覆盖 frps.user
 # key = "~/.ssh/id_rsa"         # 可选，覆盖 frps.key
 # restart_cmd = "nohup sh -c 'sleep 1; systemctl restart frpc' >/dev/null 2>&1 &"
+
+# 本机自己（macOS 上用 install-frpc-macos.sh 装完的那台）：
+# local = true → 命令在本机执行，不走 ssh，也不需要 ssh_port
+# [[machines]]
+# name = "mac"
+# local = true
+# proxies_dir = "~/.local/share/easyfrp/proxies"
+# frpc_toml = "~/.local/share/easyfrp/frpc.toml"
